@@ -20,7 +20,7 @@ public:
 	float step;
 };
 
-class AvtkUI : public DecoratorUI, public Avtk::UI
+class AvtkUI : public UI, public Avtk::UI
 {
 
 public:
@@ -69,25 +69,26 @@ public:
 	}
 
 	// -- widget's layouts
-	void group(const char* label)
+	void group_helper(const char* label)
 	{
-		widgets.push_back(WidgetEntry(new Avtk::Group(this,
-				widgetX, widgetY, 90, 20, label), 0));
+		printf("creating group %s now!\n", label);
+		widgets.push_back(WidgetEntry(new Avtk::Group(this, widgetX, widgetY, 90, 20, label), 0));
 		currentGroup = (Avtk::Group*)widgets.back().w;
 	}
 	virtual void openTabBox(const char* label)
 	{
-		group(label);
+		printf("tab box %s\n", label);
+		group_helper(label);
 	}
 	virtual void openHorizontalBox(const char* label)
 	{
 		printf("Horizontal box %s\n", label);
-		group(label);
+		group_helper(label);
 	}
 	virtual void openVerticalBox(const char* label)
 	{
 		printf("vertical box %s\n", label);
-		group(label);
+		group_helper(label);
 	}
 	virtual void closeBox()
 	{
