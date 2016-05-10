@@ -108,6 +108,8 @@ public:
 		widgets.back().min = min;
 		widgets.back().max = max;
 		widgets.back().step = step;
+		// draw label on widget
+		widgets.back().w->label_visible = 1;
 		widgetY += 25;
 	}
 	virtual void addNumEntry(const char* label, FAUSTFLOAT* zone, FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
