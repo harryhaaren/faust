@@ -54,6 +54,7 @@ install: faust2faustvst
 	install faust2jackinternal $(dest)
 	install faust2jackserver $(dest)
 	install faust2jaqt $(dest)
+	install faust2jackavtk $(dest)
 	install faust2ladspa $(dest)
 	install faust2lv2 $(dest)
 	install faust2mathdoc $(dest)

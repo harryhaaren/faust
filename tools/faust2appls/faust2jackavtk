@@ -1,0 +1,152 @@
+#!/bin/bash
+
+OSCDEFS=""
+#####################################################################
+#                                                                   #
+#               Compiles Faust programs to jack-avtk                #
+#               (c) Grame, 2009-2011                                #
+#               Modified by OpenAV for AVTK, 2016                   #
+#                                                                   #
+#####################################################################
+
+#-------------------------------------------------------------------
+# Set Faust include path
+
+if [ -f $FAUST_LIB_PATH/music.lib ]
+then
+  FAUSTLIB=$FAUST_LIB_PATH
+elif [ -f /usr/local/lib/faust/music.lib ]
+then
+  FAUSTLIB=/usr/local/lib/faust/
+elif [ -f /usr/lib/faust/music.lib ]
+then
+  FAUSTLIB=/usr/lib/faust/
+else
+  error "$0: Cannot find Faust library dir (usually /usr/local/lib/faust)"
+fi
+
+
+#-------------------------------------------------------------------
+# Check darwin specifics
+#
+if [[ $(uname) == Darwin ]]; then
+    MARCH=""
+else
+    MARCH="-march=native"
+fi
+
+
+#-------------------------------------------------------------------
+# Check AVTK static library ENV variable
+#
+if [[ $AVTK_PATH == "" ]]; then
+    echo "====================================================="
+    echo "Error: The AVTK_PATH environment variable is not set."
+    echo "====================================================="
+    echo "   The AVTK_PATH tells FAUST where to find AVTK, so"
+    echo "   it must be set to work. Follow these steps to set"
+    echo "   up AVTK correctly."
+    echo ""
+    echo "   Download the AVTK repository from github"
+    echo "     git clone https://github.com/openAVproductions/openAV-AVTK.git avtk"
+    echo "     cd avtk"
+    echo "     mkdir build"
+    echo "     cd build"
+    echo "     cmake .."
+    echo "     make"
+    echo "     export AVTK_PATH=\`pwd\`    # Note the backticks, to run pwd"
+    echo "   "
+    echo "   AVTK is now set up, so still using the same terminal (to"
+    echo "   keep the AVTK_PATH env variable set) run faust2jackavtk again."
+    echo "   "
+    echo "   Any issues, please contact OpenAV directly or Harry:"
+    echo "    harryhaaren@gmail.com"
+  exit
+else
+    echo " Found AVTK path: $AVTK_PATH"
+fi
+
+
+#-------------------------------------------------------------------
+# Default compilation flags for gcc and icc :
+#
+MYGCCFLAGS="-O3 $MARCH -mfpmath=sse -msse -msse2 -msse3 -ffast-math -ftree-vectorize"
+MYICCFLAGS="-O3 -xHost -ftz -fno-alias -fp-model fast=2"
+
+
+#-------------------------------------------------------------------
+# Analyze command arguments :
+# faust options                 -> OPTIONS
+# if -omp : -openmp or -fopenmp -> OPENMP
+# existing *.dsp files          -> FILES
+#
+
+# PHASE 1 : Look for -icc option to force use of intel icc (actually icpc)
+# without having to configure CXX and CXXFLAGS
+CXX=g++
+CXXFLAGS=$MYGCCFLAGS
+for p in $@; do
+	if [ "$p" = -icc ]; then
+		CXX=icpc
+		CXXFLAGS=$MYICCFLAGS
+    fi
+done
+	
+
+#PHASE 2 : dispatch command arguments
+for p in $@; do
+    if [ "$p" = -omp ]; then
+        if [[ $CXX == "icpc" ]]; then
+            OMP="-openmp"
+        else
+            OMP="-fopenmp"
+        fi
+    fi
+  
+    if [ "$p" = -icc ]; then
+    	ignore=" "
+    elif [ $p = "-osc" ]; then
+	 OSCDEFS="-DOSCCTRL -lOSCFaust"
+    elif [ $p = "-httpd" ]; then
+	 HTTPDEFS="-DHTTPCTRL -lHTTPDFaust -lmicrohttpd"
+	elif [ $p = "-ocv" ]; then
+	 OCVDEFS="-DOCVCTRL -lpthread"
+	 OCVLIBS="opencv"
+    elif [ $p = "-arch32" ]; then
+	PROCARCH="-m32 -L/usr/lib32"
+    elif [ $p = "-arch64" ]; then
+	PROCARCH="-m64"
+    elif [ ${p:0:1} = "-" ]; then
+	    OPTIONS="$OPTIONS $p"
+	elif [[ -f "$p" ]]; then
+	    FILES="$FILES $p"
+	else
+	    OPTIONS="$OPTIONS $p"        
+	fi
+done
+
+
+#-------------------------------------------------------------------
+# compile the *.dsp files using JACK-GTK on linux
+#
+for f in $FILES; do
+	
+	# compile faust to c++
+	faust -i -a jack-avtk.cpp $OPTIONS "$f" -o "$f.cpp" || exit
+
+  AVTK_INCLUDES="$(dirname $AVTK_PATH)/avtk"
+  AVTK_PUGL="$AVTK_INCLUDES/pugl/pugl_x11.c"
+	# compile c++ to binary
+	(
+  $CXX -I$AVTK_INCLUDES $CXXFLAGS $FAUSTTOOLSFLAGS $OMP -DPUGL_HAVE_CAIRO -L$AVTK_PATH "$f.cpp" "$AVTK_PUGL"  `pkg-config --cflags --libs jack $OCVLIBS cairo x11` -lavtk  $PROCARCH $OSCDEFS $HTTPDEFS $OCVDEFS -o "${f%.dsp}"
+	) || exit
+	rm "$f.cpp"
+
+	# collect binary file name for FaustWorks
+	BINARIES="$BINARIES${f%.dsp};"
+done
+
+
+echo $BINARIES
+
+
