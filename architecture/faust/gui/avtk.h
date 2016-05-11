@@ -99,15 +99,30 @@ public:
 	Avtk::Group* currentGroup;
 
 	// -- active widgets
-	virtual void addButton(const char* label, FAUSTFLOAT* zone) {}
+	virtual void addButton(const char* label, FAUSTFLOAT* zone)
+	{
+		widgets.push_back(WidgetEntry(new Avtk::Button(this, 120, widgetY, 90, 20, label), zone));
+		widgets.back().w->clickMode(CLICK_TOGGLE);
+		widgets.back().min = 0;
+		widgets.back().max = 1;
+		widgets.back().step = 1;
+		// draw label on widget
+		widgets.back().w->label_visible = 1;
+		widgetY += 25;
+	}
 	virtual void addCheckButton(const char* label, FAUSTFLOAT* zone) {}
-	virtual void addVerticalSlider(const char* label, FAUSTFLOAT* zone, FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step) {}
+	virtual void addVerticalSlider(const char* label, FAUSTFLOAT* zone, FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
+	{
+		// highjack for now
+		addHorizontalSlider(label, zone, init, min, max, step);
+	}
 	virtual void addHorizontalSlider(const char* label, FAUSTFLOAT* zone, FAUSTFLOAT init, FAUSTFLOAT min, FAUSTFLOAT max, FAUSTFLOAT step)
 	{
 		widgets.push_back(WidgetEntry(new Avtk::Slider(this, 20, widgetY, 90, 20, label), zone));
 		widgets.back().min = min;
 		widgets.back().max = max;
 		widgets.back().step = step;
+		widgets.back().w->value(init);
 		// draw label on widget
 		widgets.back().w->label_visible = 1;
 		widgetY += 25;
@@ -118,6 +133,7 @@ public:
 		widgets.back().min = min;
 		widgets.back().max = max;
 		widgets.back().step = step;
+		widgets.back().w->value(init);
 		widgetX += 55;
 	}
 
