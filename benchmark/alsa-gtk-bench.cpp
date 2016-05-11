@@ -64,7 +64,7 @@ using namespace std;
         #define AVOIDDENORMALS _mm_setcsr(_mm_getcsr() | 0x8000)
     #endif
 #else
-    #define AVOIDDENORMALS 
+    #define AVOIDDENORMALS
 #endif
 
 //#define BENCHMARKMODE
@@ -82,10 +82,15 @@ using namespace std;
 //template<typename T> T abs (T a)			{ return (a<T(0)) ? -a : a; }
 
 
-inline int		lsr (int x, int n)			{ return int(((unsigned int)x) >> n); }
+inline int lsr(int x, int n)
+{
+	return int(((unsigned int)x) >> n)
+}
 
-
-inline int int2pow2 (int x)	{ int r=0; while ((1<<r)<x) r++; return r; }
+inline int int2pow2(int x)
+{
+	int r=0; while ((1<<r)<x) r++; return r;
+}
 
 
 /**
@@ -96,13 +101,13 @@ bool setRealtimePriority ()
     struct passwd *         pw;
     int                     err;
     uid_t                   uid;
-    struct sched_param      param;  
+    struct sched_param      param;
 
     uid = getuid ();
     pw = getpwnam ("root");
-    setuid (pw->pw_uid); 
+    setuid (pw->pw_uid);
     param.sched_priority = 89; /* 0 to 99  */
-    err = sched_setscheduler(0, SCHED_FIFO, &param); 
+    err = sched_setscheduler(0, SCHED_FIFO, &param);
     setuid (uid);
     return (err != -1);
 }
@@ -139,7 +144,7 @@ static __inline__ uint64 rdtsc(void)
 	
 	__asm__ __volatile__("rdtsc" : "=a" (count.i32[0]), "=d" (count.i32[1]));
 
-     return count.i64;
+	return count.i64;
 }
 
 #define KSKIP 20
@@ -158,23 +163,23 @@ uint64 stops [KMESURE];
 #define STARTMESURE starts[mesure%KMESURE] = rdtsc();
 #define STOPMESURE stops[mesure%KMESURE] = rdtsc(); mesure = mesure+1;
 
-struct timeval 		tv1;
-struct timeval 		tv2;
+struct timeval tv1;
+struct timeval tv2;
 
 void openMesure()
 {
-	struct timezone 	tz;
+	struct timezone tz;
 	gettimeofday(&tv1, &tz);
-	firstRDTSC  = rdtsc();
+	firstRDTSC = rdtsc();
 }
 
 void closeMesure()
 {
-	struct timezone 	tz;
+	struct timezone tz;
 	gettimeofday(&tv2, &tz);
-	lastRDTSC  = rdtsc();
+	lastRDTSC = rdtsc();
 }
-	
+
 /**
  * return the number of RDTSC clocks per seconds
  */
@@ -183,19 +188,19 @@ int64 rdtscpersec()
 	// If the environment variable CLOCKSPERSEC is defined
 	// we use it instead of our own measurement
 	char* str = getenv("CLOCKSPERSEC");
-    if (str) {
-	    int64 cps = (int64) atoll(str);
-        if (cps > 1000000000) {
-		    return cps;
-	    } else {
-		    return (lastRDTSC-firstRDTSC) / (tv2.tv_sec - tv1.tv_sec) ;
-	    }
-    } else {
-        return (lastRDTSC-firstRDTSC) / (tv2.tv_sec - tv1.tv_sec) ;
-    }   
+	if (str) {
+		int64 cps = (int64) atoll(str);
+		if (cps > 1000000000) {
+			return cps;
+		} else {
+			return (lastRDTSC-firstRDTSC) /
+				(tv2.tv_sec - tv1.tv_sec);
+		}
+	} else {
+		return (lastRDTSC-firstRDTSC) / (tv2.tv_sec - tv1.tv_sec) ;
+	}
 }
 
-    
 /**
  * Converts a duration, expressed in RDTSC clocks, into seconds
  */
@@ -209,7 +214,7 @@ double rdtsc2sec( double clk)
 	return clk / double(rdtscpersec());
 }
 
-    
+
 /**
  * Converts RDTSC clocks into Megabytes/seconds according to the
  * number of frames processed during the period, the number of channels
@@ -220,7 +225,7 @@ double megapersec(int frames, int chans, uint64 clk)
 	return double(frames*chans*4)/double(1024*1024*rdtsc2sec(clk));
 }
 
-    
+
 /**
  * Compute the mean value of a vector of measures
  */
@@ -230,7 +235,7 @@ static uint64 meanValue( vector<uint64>::const_iterator a, vector<uint64>::const
 	unsigned int n = 0;
 	while (a!=b) { r += *a++; n++; }
 	return (n>0) ? r/n : 0;
-}   
+}
 
 /**
  * Print the median value (in Megabytes/second) of KMESURE
@@ -238,31 +243,30 @@ static uint64 meanValue( vector<uint64>::const_iterator a, vector<uint64>::const
  */
 void printstats(const char* applname, int bsize, int ichans, int ochans)
 {
-    assert(mesure > KMESURE);
-    vector<uint64> V(KMESURE);
+	assert(mesure > KMESURE);
+	vector<uint64> V(KMESURE);
 
-    for (int i = 0; i<KMESURE; i++) {
-        V[i] = stops[i] - starts[i];
-    }
+	for (int i = 0; i<KMESURE; i++) {
+		V[i] = stops[i] - starts[i];
+	}
 
-    sort(V.begin(), V.end());
-  
-    // Mean of 10 best values (gives relatively stable results)
-    uint64 meaval00 = meanValue(V.begin(), V.begin()+ 5);			
-    uint64 meaval25 = meanValue(V.begin()+KMESURE/4 - 2, V.begin()+KMESURE/4 + 3);			
-    uint64 meaval50 = meanValue(V.begin()+KMESURE/2 - 2, V.begin()+KMESURE/2 + 3);			
-    uint64 meaval75 = meanValue(V.begin()+3*KMESURE/4 - 2, V.begin()+3*KMESURE/4 + 3);			
-    uint64 meaval100 = meanValue(V.end() - 5, V.end());			
-  
-    //printing
-    cout << applname
-         << '\t' << megapersec(bsize, ichans+ochans, meaval00) 
-         << '\t' << megapersec(bsize, ichans+ochans, meaval25) 
-         << '\t' << megapersec(bsize, ichans+ochans, meaval50) 
-         << '\t' << megapersec(bsize, ichans+ochans, meaval75) 
-         << '\t' << megapersec(bsize, ichans+ochans, meaval100) 
-         << endl;
-    
+	sort(V.begin(), V.end());
+
+	// Mean of 10 best values (gives relatively stable results)
+	uint64 meaval00 = meanValue(V.begin(), V.begin()+ 5);
+	uint64 meaval25 = meanValue(V.begin()+KMESURE/4 - 2, V.begin()+KMESURE/4 + 3);
+	uint64 meaval50 = meanValue(V.begin()+KMESURE/2 - 2, V.begin()+KMESURE/2 + 3);
+	uint64 meaval75 = meanValue(V.begin()+3*KMESURE/4 - 2, V.begin()+3*KMESURE/4 + 3);
+	uint64 meaval100 = meanValue(V.end() - 5, V.end());
+
+	//printing
+	cout << applname
+		 << '\t' << megapersec(bsize, ichans+ochans, meaval00) 
+		 << '\t' << megapersec(bsize, ichans+ochans, meaval25) 
+		 << '\t' << megapersec(bsize, ichans+ochans, meaval50) 
+		 << '\t' << megapersec(bsize, ichans+ochans, meaval75) 
+		 << '\t' << megapersec(bsize, ichans+ochans, meaval100) 
+		 << endl;
 }
 
 #else
@@ -289,17 +293,16 @@ enum { kRead = 1, kWrite = 2, kReadWrite = 3 };
 class AudioParam
 {
   public:
-			
-	const char*		fCardName;					
+	const char*	fCardName;
 	unsigned int	fFrequency;
-	unsigned int	fBuffering; 
-	unsigned int	fPeriods; 
-	
+	unsigned int	fBuffering;
+	unsigned int	fPeriods;
+
 	unsigned int	fSoftInputs;
 	unsigned int	fSoftOutputs;
 	
   public :
-	AudioParam() : 
+	AudioParam() :
 		fCardName("hw:0"),
 		fFrequency(44100),
 		fBuffering(512),
@@ -308,12 +311,12 @@ class AudioParam
 		fSoftOutputs(2)
 	{}
 	
-	AudioParam&	cardName(const char* n)	{ fCardName = n; 		return *this; }
-	AudioParam&	frequency(int f)		{ fFrequency = f; 		return *this; }
-	AudioParam&	buffering(int fpb)		{ fBuffering = fpb; 	return *this; }
-	AudioParam&	periods(int p)			{ fPeriods = p; 		return *this; }
-	AudioParam&	inputs(int n)			{ fSoftInputs = n; 		return *this; }
-	AudioParam&	outputs(int n)			{ fSoftOutputs = n; 	return *this; }
+	AudioParam&	cardName(const char* n)	{ fCardName = n;	return *this; }
+	AudioParam&	frequency(int f)	{ fFrequency = f;	return *this; }
+	AudioParam&	buffering(int fpb)	{ fBuffering = fpb;	return *this; }
+	AudioParam&	periods(int p)		{ fPeriods = p;		return *this; }
+	AudioParam&	inputs(int n)		{ fSoftInputs = n;	return *this; }
+	AudioParam&	outputs(int n)		{ fSoftOutputs = n;	return *this; }
 };
 
 
@@ -324,50 +327,47 @@ class AudioParam
 class AudioInterface : public AudioParam
 {
  public :
-	snd_pcm_t*				fOutputDevice ;		
-	snd_pcm_t*				fInputDevice ;			
-	snd_pcm_hw_params_t* 	fInputParams;
-	snd_pcm_hw_params_t* 	fOutputParams;
-	
-	snd_pcm_format_t 		fSampleFormat;
-	snd_pcm_access_t 		fSampleAccess;
-	
-	unsigned int			fCardInputs;
-	unsigned int			fCardOutputs;
-	
-	unsigned int			fChanInputs;
-	unsigned int			fChanOutputs;
-	
+	snd_pcm_t*		fOutputDevice ;
+	snd_pcm_t*		fInputDevice ;
+	snd_pcm_hw_params_t*	fInputParams;
+	snd_pcm_hw_params_t*	fOutputParams;
+
+	snd_pcm_format_t	fSampleFormat;
+	snd_pcm_access_t	fSampleAccess;
+
+	unsigned int		fCardInputs;
+	unsigned int		fCardOutputs;
+
+	unsigned int		fChanInputs;
+	unsigned int		fChanOutputs;
+
 	// interleaved mode audiocard buffers
-	void*		fInputCardBuffer;
-	void*		fOutputCardBuffer;
-	
+	void*	fInputCardBuffer;
+	void*	fOutputCardBuffer;
+
 	// non interleaved mode audiocard buffers
-	void*		fInputCardChannels[256];
-	void*		fOutputCardChannels[256];
+	void*	fInputCardChannels[256];
+	void*	fOutputCardChannels[256];
 	
 	// non interleaved mod, floating point software buffers
-	float*		fInputSoftChannels[256];
-	float*		fOutputSoftChannels[256];
+	float*	fInputSoftChannels[256];
+	float*	fOutputSoftChannels[256];
 
  public :
- 
-	const char*	cardName()				{ return fCardName;  	}
- 	int			frequency()				{ return fFrequency; 	}
-	int			buffering()				{ return fBuffering;  	}
-	int			periods()				{ return fPeriods;  	}
+	const char*	cardName()	{ return fCardName;	}
+ 	int		frequency()	{ return fFrequency;	}
+	int		buffering()	{ return fBuffering;	}
+	int		periods()	{ return fPeriods;	}
 	
-	float**		inputSoftChannels()		{ return fInputSoftChannels;	}
+	float**		inputSoftChannels()	{ return fInputSoftChannels;	}
 	float**		outputSoftChannels()	{ return fOutputSoftChannels;	}
 
-	
 	AudioInterface(const AudioParam& ap = AudioParam()) : AudioParam(ap)
 	{
-		
-		fInputDevice 			= 0;
-		fOutputDevice 			= 0;
-		fInputParams			= 0;
-		fOutputParams			= 0;
+		fInputDevice	= 0;
+		fOutputDevice	= 0;
+		fInputParams	= 0;
+		fOutputParams	= 0;
 	}
 	
 	
@@ -379,20 +379,20 @@ class AudioInterface : public AudioParam
 		int err;
 		
 		// allocation d'un stream d'entree et d'un stream de sortie
-		err = snd_pcm_open( &fInputDevice,  fCardName, SND_PCM_STREAM_CAPTURE, 0 ); 	check_error(err)
-		err = snd_pcm_open( &fOutputDevice, fCardName, SND_PCM_STREAM_PLAYBACK, 0 ); 	check_error(err)
+		err = snd_pcm_open( &fInputDevice,  fCardName, SND_PCM_STREAM_CAPTURE, 0 );	check_error(err)
+		err = snd_pcm_open( &fOutputDevice, fCardName, SND_PCM_STREAM_PLAYBACK, 0 );	check_error(err)
 
 		// recherche des parametres d'entree
-		err = snd_pcm_hw_params_malloc	( &fInputParams ); 	check_error(err);
+		err = snd_pcm_hw_params_malloc	( &fInputParams );	check_error(err);
 		setAudioParams(fInputDevice, fInputParams);
 
 		// recherche des parametres de sortie
-		err = snd_pcm_hw_params_malloc	( &fOutputParams ); 		check_error(err)
+		err = snd_pcm_hw_params_malloc	( &fOutputParams );	check_error(err)
 		setAudioParams(fOutputDevice, fOutputParams);
 		
 		// set the number of physical input and output channels close to what we need
-		fCardInputs 	= fSoftInputs;
-		fCardOutputs 	= fSoftOutputs;
+		fCardInputs	= fSoftInputs;
+		fCardOutputs	= fSoftOutputs;
 		
 		snd_pcm_hw_params_set_channels_near(fInputDevice, fInputParams, &fCardInputs);
 		snd_pcm_hw_params_set_channels_near(fOutputDevice, fOutputParams, &fCardOutputs);
@@ -401,7 +401,7 @@ class AudioInterface : public AudioParam
 
 		// enregistrement des parametres d'entree-sortie
 		
-		err = snd_pcm_hw_params (fInputDevice,  fInputParams );	 	check_error (err);
+		err = snd_pcm_hw_params (fInputDevice,  fInputParams );		check_error (err);
 		err = snd_pcm_hw_params (fOutputDevice, fOutputParams );	check_error (err);
 
 		//assert(snd_pcm_hw_params_get_period_size(fInputParams,NULL) == snd_pcm_hw_params_get_period_size(fOutputParams,NULL));
@@ -409,8 +409,7 @@ class AudioInterface : public AudioParam
 		// allocation of alsa buffers
 		if (fSampleAccess == SND_PCM_ACCESS_RW_INTERLEAVED) {
 			fInputCardBuffer = calloc(interleavedBufferSize(fInputParams), 1);
-	 		fOutputCardBuffer = calloc(interleavedBufferSize(fOutputParams), 1);
-			
+			fOutputCardBuffer = calloc(interleavedBufferSize(fOutputParams), 1);
 		} else {
 			for (unsigned int i = 0; i < fCardInputs; i++) {
 				fInputCardChannels[i] = calloc(noninterleavedBufferSize(fInputParams), 1);
@@ -423,8 +422,8 @@ class AudioInterface : public AudioParam
 		
 		// allocation of floating point buffers needed by the dsp code
 		
-		fChanInputs = max(fSoftInputs, fCardInputs);		assert (fChanInputs < 256);
-		fChanOutputs = max(fSoftOutputs, fCardOutputs);		assert (fChanOutputs < 256);
+		fChanInputs = max(fSoftInputs, fCardInputs);	assert (fChanInputs < 256);
+		fChanOutputs = max(fSoftOutputs, fCardOutputs);	assert (fChanOutputs < 256);
 
 		for (unsigned int i = 0; i < fChanInputs; i++) {
 			fInputSoftChannels[i] = (float*) calloc (fBuffering, sizeof(float));
@@ -440,16 +439,15 @@ class AudioInterface : public AudioParam
 			}
 		}
 
-
-	}
+	} /* open() */
 	
 	
 	void setAudioParams(snd_pcm_t* stream, snd_pcm_hw_params_t* params)
-	{	
+	{
 		int	err;
 
 		// set params record with initial values
-		err = snd_pcm_hw_params_any	( stream, params ); 	
+		err = snd_pcm_hw_params_any( stream, params );
 		check_error_msg(err, "unable to init parameters")
 
 		// set alsa access mode (and fSampleAccess field) either to non interleaved or interleaved
@@ -466,27 +464,27 @@ class AudioInterface : public AudioParam
 		err = snd_pcm_hw_params_set_format (stream, params, SND_PCM_FORMAT_S32);
 		if (err) {
 			err = snd_pcm_hw_params_set_format (stream, params, SND_PCM_FORMAT_S16);
-		 	check_error_msg(err, "unable to set format to either 32-bits or 16-bits");
+			check_error_msg(err, "unable to set format to either 32-bits or 16-bits");
 		}
 		snd_pcm_hw_params_get_format(params, &fSampleFormat);
 		// set sample frequency
-		snd_pcm_hw_params_set_rate_near (stream, params, &fFrequency, 0); 
+		snd_pcm_hw_params_set_rate_near (stream, params, &fFrequency, 0);
 
 		// set period and period size (buffering)
-		err = snd_pcm_hw_params_set_period_size	(stream, params, fBuffering, 0); 	
+		err = snd_pcm_hw_params_set_period_size	(stream, params, fBuffering, 0);
 		check_error_msg(err, "period size not available");
 		
-		err = snd_pcm_hw_params_set_periods (stream, params, fPeriods, 0); 			
+		err = snd_pcm_hw_params_set_periods (stream, params, fPeriods, 0);
 		check_error_msg(err, "number of periods not available");
 
-	}
+	} /* setAudioParams */
 
 
 	ssize_t interleavedBufferSize (snd_pcm_hw_params_t* params)
 	{
-		_snd_pcm_format 	format;  	snd_pcm_hw_params_get_format(params, &format);
-		snd_pcm_uframes_t 	psize;		snd_pcm_hw_params_get_period_size(params, &psize, NULL);
-		unsigned int 		channels; 	snd_pcm_hw_params_get_channels(params, &channels);
+		_snd_pcm_format		format;		snd_pcm_hw_params_get_format(params, &format);
+		snd_pcm_uframes_t	psize;		snd_pcm_hw_params_get_period_size(params, &psize, NULL);
+		unsigned int		channels;	snd_pcm_hw_params_get_channels(params, &channels);
 		ssize_t bsize = snd_pcm_format_size (format, psize * channels);
 		return bsize;
 	}
@@ -494,8 +492,8 @@ class AudioInterface : public AudioParam
 
 	ssize_t noninterleavedBufferSize (snd_pcm_hw_params_t* params)
 	{
-		_snd_pcm_format 	format;  	snd_pcm_hw_params_get_format(params, &format);
-		snd_pcm_uframes_t 	psize;		snd_pcm_hw_params_get_period_size(params, &psize, NULL);
+		_snd_pcm_format		format;		snd_pcm_hw_params_get_format(params, &format);
+		snd_pcm_uframes_t	psize;		snd_pcm_hw_params_get_period_size(params, &psize, NULL);
 		ssize_t bsize = snd_pcm_format_size (format, psize);
 		return bsize;
 	}
@@ -516,16 +514,16 @@ class AudioInterface : public AudioParam
 		
 		if (fSampleAccess == SND_PCM_ACCESS_RW_INTERLEAVED) {
 			
-			int count = snd_pcm_readi(fInputDevice, fInputCardBuffer, fBuffering); 	
-			if (count<0) { 
+			int count = snd_pcm_readi(fInputDevice, fInputCardBuffer, fBuffering);
+			if (count<0) {
 				display_error_msg(count, "reading samples");
-				 int err = snd_pcm_prepare(fInputDevice);	
+				 int err = snd_pcm_prepare(fInputDevice);
 				 check_error_msg(err, "preparing input stream");
 			}
 			
 			if (fSampleFormat == SND_PCM_FORMAT_S16) {
 
-				short* 	buffer16b = (short*) fInputCardBuffer;
+				short* buffer16b = (short*) fInputCardBuffer;
 				for (int s = 0; s < fBuffering; s++) {
 					for (unsigned int c = 0; c < fCardInputs; c++) {
 						fInputSoftChannels[c][s] = float(buffer16b[c + s*fCardInputs])*(1.0/float(SHRT_MAX));
@@ -534,7 +532,7 @@ class AudioInterface : public AudioParam
 
 			} else if (fSampleFormat == SND_PCM_FORMAT_S32) {
 
-				int* 	buffer32b = (int*) fInputCardBuffer;
+				int*	buffer32b = (int*) fInputCardBuffer;
 				for (int s = 0; s < fBuffering; s++) {
 					for (unsigned int c = 0; c < fCardInputs; c++) {
 						fInputSoftChannels[c][s] = float(buffer32b[c + s*fCardInputs])*(1.0/float(INT_MAX));
@@ -549,7 +547,7 @@ class AudioInterface : public AudioParam
 		} else if (fSampleAccess == SND_PCM_ACCESS_RW_NONINTERLEAVED) {
 			
 			int count = snd_pcm_readn(fInputDevice, fInputCardChannels, fBuffering); 	
-			if (count<0) { 
+			if (count<0) {
 				display_error_msg(count, "reading samples");
 				 int err = snd_pcm_prepare(fInputDevice);	
 				 check_error_msg(err, "preparing input stream");
@@ -558,16 +556,16 @@ class AudioInterface : public AudioParam
 			if (fSampleFormat == SND_PCM_FORMAT_S16) {
 
 				for (unsigned int c = 0; c < fCardInputs; c++) {
-					short* 	chan16b = (short*) fInputCardChannels[c];
+					short* chan16b = (short*) fInputCardChannels[c];
 					for (int s = 0; s < fBuffering; s++) {
 						fInputSoftChannels[c][s] = float(chan16b[s])*(1.0/float(SHRT_MAX));
 					}
 				}
 
-			} else if (fSampleFormat == SND_PCM_FORMAT_S32) { 
+			} else if (fSampleFormat == SND_PCM_FORMAT_S32) {
 
 				for (unsigned int c = 0; c < fCardInputs; c++) {
-					int* 	chan32b = (int*) fInputCardChannels[c];
+					int* chan32b = (int*) fInputCardChannels[c];
 					for (int s = 0; s < fBuffering; s++) {
 						fInputSoftChannels[c][s] = float(chan32b[s])*(1.0/float(INT_MAX));
 					}
@@ -582,8 +580,7 @@ class AudioInterface : public AudioParam
 			check_error_msg(-10000, "unknow access mode");
 		}
 
-
-	}
+	} /* read() */
 
 
 	/**
@@ -621,10 +618,10 @@ class AudioInterface : public AudioParam
 				exit(1);
 			}
 
-			int count = snd_pcm_writei(fOutputDevice, fOutputCardBuffer, fBuffering); 	
-			if (count<0) { 
-				display_error_msg(count, "w3"); 
-				int err = snd_pcm_prepare(fOutputDevice);	
+			int count = snd_pcm_writei(fOutputDevice, fOutputCardBuffer, fBuffering);
+			if (count<0) {
+				display_error_msg(count, "w3");
+				int err = snd_pcm_prepare(fOutputDevice);
 				check_error_msg(err, "preparing output stream");
 				goto recovery;
 			}
@@ -642,7 +639,7 @@ class AudioInterface : public AudioParam
 					}
 				}
 
-			} else if (fSampleFormat == SND_PCM_FORMAT_S32) { 
+			} else if (fSampleFormat == SND_PCM_FORMAT_S32) {
 
 				for (unsigned int c = 0; c < fCardOutputs; c++) {
 					int* chan32b = (int*) fOutputCardChannels[c];
@@ -658,10 +655,10 @@ class AudioInterface : public AudioParam
 				exit(1);
 			}
 
-			int count = snd_pcm_writen(fOutputDevice, fOutputCardChannels, fBuffering); 	
+			int count = snd_pcm_writen(fOutputDevice, fOutputCardChannels, fBuffering);
 			if (count<0) { 
 				display_error_msg(count, "w3"); 
-				int err = snd_pcm_prepare(fOutputDevice);	
+				int err = snd_pcm_prepare(fOutputDevice);
 				check_error_msg(err, "preparing output stream");
 				goto recovery;
 			}
@@ -678,30 +675,30 @@ class AudioInterface : public AudioParam
 	 */
 	void shortinfo()
 	{
-		int						err;
+		int err;
 		snd_ctl_card_info_t*	card_info;
-    	snd_ctl_t*				ctl_handle;
+		snd_ctl_t*		ctl_handle;
 		err = snd_ctl_open (&ctl_handle, fCardName, 0);		check_error(err);
 		snd_ctl_card_info_alloca (&card_info);
 		err = snd_ctl_card_info(ctl_handle, card_info);		check_error(err);
-		printf("%s|%d|%d|%d|%d|%s\n", 
+		printf("%s|%d|%d|%d|%d|%s\n",
 				snd_ctl_card_info_get_driver(card_info),
 				fCardInputs, fCardOutputs,
 				fFrequency, fBuffering,
 				snd_pcm_format_name((_snd_pcm_format)fSampleFormat));
 	}
-					
+
 	/**
 	 *  print more detailled information on the audio device
 	 */
 	void longinfo()
 	{
-		int						err;
+		int	err;
 		snd_ctl_card_info_t*	card_info;
-    	snd_ctl_t*				ctl_handle;
+		snd_ctl_t*		ctl_handle;
 
 		printf("Audio Interface Description :\n");
-		printf("Sampling Frequency : %d, Sample Format : %s, buffering : %d\n", 
+		printf("Sampling Frequency : %d, Sample Format : %s, buffering : %d\n",
 				fFrequency, snd_pcm_format_name((_snd_pcm_format)fSampleFormat), fBuffering);
 		printf("Software inputs : %2d, Software outputs : %2d\n", fSoftInputs, fSoftOutputs);
 		printf("Hardware inputs : %2d, Hardware outputs : %2d\n", fCardInputs, fCardOutputs);
@@ -781,13 +778,13 @@ typedef void (*uiCallback)(float val, void* data);
  * Graphic User Interface : abstract definition
  */
 
-class UI 
+class UI
 {
 	typedef list<uiItem*> clist;
 	typedef map<float*, clist*> zmap;
 	
  private:
- 	static list<UI*>	fGuiList;
+	static list<UI*>	fGuiList;
 	zmap				fZoneMap;
 	bool				fStopped;
 	
@@ -807,7 +804,7 @@ class UI
 	{
 		if (fZoneMap.find(z) == fZoneMap.end()) fZoneMap[z] = new clist();
 		fZoneMap[z]->push_back(c);
-	} 	
+	}
 
 	// -- saveState(filename) : save the value of every zone to a file
 	
@@ -815,9 +812,9 @@ class UI
 	{
 		ofstream f(filename);
 		
-		for (zmap::iterator i=fZoneMap.begin(); i!=fZoneMap.end(); i++) { 
+		for (zmap::iterator i=fZoneMap.begin(); i!=fZoneMap.end(); i++) {
 			f << *(i->first) << ' ';
-		} 
+		}
 		
 		f << endl;
 		f.close();
@@ -829,9 +826,9 @@ class UI
 	{
 		ifstream f(filename);
 		if (f.good()) {
-			for (zmap::iterator i=fZoneMap.begin(); i!=fZoneMap.end(); i++) { 
+			for (zmap::iterator i=fZoneMap.begin(); i!=fZoneMap.end(); i++) {
 				f >> *(i->first);
-			} 
+			}
 		}
 		f.close();
 	}
@@ -877,10 +874,10 @@ class UI
 	virtual void show() = 0;
 	virtual void run() = 0;
 	
-	void stop()		{ fStopped = true; }
-	bool stopped() 	{ return fStopped; }
+	void stop()	{ fStopped = true; }
+	bool stopped()	{ return fStopped; }
 
-    virtual void declare(float* zone, const char* key, const char* value) {}
+	virtual void declare(float* zone, const char* key, const char* value) {}
 };
 
 
@@ -891,14 +888,14 @@ class UI
 class uiItem
 {
   protected :
-		  
+
 	UI*		fGUI;
 	float*		fZone;
 	float		fCache;
 	
-	uiItem (UI* ui, float* zone) : fGUI(ui), fZone(zone), fCache(-123456.654321) 
-	{ 
-		ui->registerZone(zone, this); 
+	uiItem (UI* ui, float* zone) : fGUI(ui), fZone(zone), fCache(-123456.654321)
+	{
+		ui->registerZone(zone, this);
 	}
 	
 	
@@ -906,17 +903,17 @@ class uiItem
 	
 	virtual ~uiItem() {}
 
-	void modifyZone(float v) 	
-	{ 
+	void modifyZone(float v)
+	{
 		fCache = v;
 		if (*fZone != v) {
 			*fZone = v;
 			fGUI->updateZone(fZone);
 		}
 	}
-		  	
-	float			cache()			{ return fCache; }
-	virtual void 	reflectZone() 	= 0;	
+
+	float		cache()	{ return fCache; }
+	virtual void	reflectZone() = 0;
 };
 
 
@@ -932,10 +929,10 @@ struct uiCallbackItem : public uiItem
 	uiCallbackItem(UI* ui, float* zone, uiCallback foo, void* data) 
 			: uiItem(ui, zone), fCallback(foo), fData(data) {}
 	
-	virtual void 	reflectZone() {		
-		float 	v = *fZone;
-		fCache = v; 
-		fCallback(v, fData);	
+	virtual void	reflectZone() {
+		float	v = *fZone;
+		fCache = v;
+		fCallback(v, fData);
 	}
 };
 
@@ -945,8 +942,8 @@ struct uiCallbackItem : public uiItem
 
 inline void UI::updateZone(float* z)
 {
-	float 	v = *z;
-	clist* 	l = fZoneMap[z];
+	float v = *z;
+	clist* l = fZoneMap[z];
 	for (clist::iterator c = l->begin(); c != l->end(); c++) {
 		if ((*c)->cache() != v) (*c)->reflectZone();
 	}
@@ -960,7 +957,7 @@ inline void UI::updateZone(float* z)
 inline void UI::updateAllZones()
 {
 	for (zmap::iterator m = fZoneMap.begin(); m != fZoneMap.end(); m++) {
-		float* 	z = m->first;
+		float*	z = m->first;
 		clist*	l = m->second;
 		float	v = *z;
 		for (clist::iterator c = l->begin(); c != l->end(); c++) {
@@ -969,9 +966,9 @@ inline void UI::updateAllZones()
 	}
 }
 
-inline void UI::addCallback(float* zone, uiCallback foo, void* data) 
-{ 
-	new uiCallbackItem(this, zone, foo, data); 
+inline void UI::addCallback(float* zone, uiCallback foo, void* data)
+{
+	new uiCallbackItem(this, zone, foo, data);
 };
 
 
@@ -998,31 +995,31 @@ inline void UI::addCallback(float* zone, uiCallback foo, void* data)
 class GTKUI : public UI
 {
  private :
- 	static bool			fInitialized;
- 	static list<UI*>	fGuiList;
+	static bool		fInitialized;
+	static list<UI*>	fGuiList;
 	
  protected :
-	GtkWidget* 	fWindow;
-	int			fTop;
-	GtkWidget* 	fBox[stackSize];
-	int 		fMode[stackSize];
+	GtkWidget*	fWindow;
+	int		fTop;
+	GtkWidget*	fBox[stackSize];
+	int		fMode[stackSize];
 	bool		fStopped;
 
 	GtkWidget* addWidget(const char* label, GtkWidget* w);
 	virtual void pushBox(int mode, GtkWidget* w);
 
-		
+
  public :
 	
- 	static const gboolean expand = TRUE;
+	static const gboolean expand = TRUE;
 	static const gboolean fill = TRUE;
 	static const gboolean homogene = FALSE;
-		 
+
 	GTKUI(char * name, int* pargc, char*** pargv);
 	
 	// -- layout groups
 	
-	virtual void openFrameBox(const char* label);	
+	virtual void openFrameBox(const char* label);
 	virtual void openTabBox(const char* label = "");
 	virtual void openHorizontalBox(const char* label = "");
 	virtual void openVerticalBox(const char* label = "");
@@ -1034,8 +1031,8 @@ class GTKUI : public UI
 	virtual void addButton(const char* label, float* zone);
 	virtual void addToggleButton(const char* label, float* zone);
 	virtual void addCheckButton(const char* label, float* zone);
-	virtual void addVerticalSlider(const char* label, float* zone, float init, float min, float max, float step);	
-	virtual void addHorizontalSlider(const char* label, float* zone, float init, float min, float max, float step);	
+	virtual void addVerticalSlider(const char* label, float* zone, float init, float min, float max, float step);
+	virtual void addHorizontalSlider(const char* label, float* zone, float init, float min, float max, float step);
 	virtual void addNumEntry(const char* label, float* zone, float init, float min, float max, float step);
 	
 	// -- passive display widgets
@@ -1047,7 +1044,7 @@ class GTKUI : public UI
 	
 	virtual void show();
 	virtual void run();
-		
+
 };
 
 
@@ -1070,7 +1067,7 @@ list<UI*>	UI::fGuiList;
 
 static gint delete_event( GtkWidget *widget, GdkEvent *event, gpointer data )
 {
-    return FALSE; 
+    return FALSE;
 }
 
 static void destroy_event( GtkWidget *widget, gpointer data )
@@ -1078,8 +1075,8 @@ static void destroy_event( GtkWidget *widget, gpointer data )
     gtk_main_quit ();
 }
 
-		 
-GTKUI::GTKUI(char * name, int* pargc, char*** pargv) 
+
+GTKUI::GTKUI(char * name, int* pargc, char*** pargv)
 {
 	if (!fInitialized) {
 		gtk_init(pargc, pargv);
@@ -1104,8 +1101,8 @@ GTKUI::GTKUI(char * name, int* pargc, char*** pargv)
 void GTKUI::pushBox(int mode, GtkWidget* w)
 {
 	assert(++fTop < stackSize);
-	fMode[fTop] 	= mode;
-	fBox[fTop] 		= w;
+	fMode[fTop]	= mode;
+	fBox[fTop]	= w;
 }
 
 void GTKUI::closeBox()
@@ -1158,13 +1155,13 @@ void GTKUI::openVerticalBox(const char* label)
 		pushBox(kBoxMode, addWidget(label, box));
 	}
 }
-	
+
 GtkWidget* GTKUI::addWidget(const char* label, GtkWidget* w)
-{ 
+{
 	switch (fMode[fTop]) {
-		case kSingleMode	: gtk_container_add (GTK_CONTAINER(fBox[fTop]), w); 							break;
-		case kBoxMode 		: gtk_box_pack_start (GTK_BOX(fBox[fTop]), w, expand, fill, 0); 				break;
-		case kTabMode 		: gtk_notebook_append_page (GTK_NOTEBOOK(fBox[fTop]), w, gtk_label_new(label)); break;
+		case kSingleMode	: gtk_container_add (GTK_CONTAINER(fBox[fTop]), w); 				break;
+		case kBoxMode		: gtk_box_pack_start (GTK_BOX(fBox[fTop]), w, expand, fill, 0); 		break;
+		case kTabMode		: gtk_notebook_append_page (GTK_NOTEBOOK(fBox[fTop]), w, gtk_label_new(label)); break;
 	}
 	gtk_widget_show (w);
 	return w;
@@ -1174,7 +1171,7 @@ GtkWidget* GTKUI::addWidget(const char* label, GtkWidget* w)
 
 struct uiButton : public uiItem
 {
-	GtkButton* 	fButton;
+	GtkButton* fButton;
 	
 	uiButton (UI* ui, float* zone, GtkButton* b) : uiItem(ui, zone), fButton(b) {}
 	
@@ -1190,10 +1187,10 @@ struct uiButton : public uiItem
 		c->modifyZone(0.0);
 	}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
-		fCache = v; 
+	virtual void reflectZone()
+	{
+		float v = *fZone;
+		fCache = v;
 		if (v > 0.0) gtk_button_pressed(fButton); else gtk_button_released(fButton);
 	}
 };
@@ -1201,14 +1198,13 @@ struct uiButton : public uiItem
 void GTKUI::addButton(const char* label, float* zone)
 {
 	*zone = 0.0;
-	GtkWidget* 	button = gtk_button_new_with_label (label);
+	GtkWidget* button = gtk_button_new_with_label (label);
 	addWidget(label, button);
 	
 	uiButton* c = new uiButton(this, zone, GTK_BUTTON(button));
 	
 	gtk_signal_connect (GTK_OBJECT (button), "pressed", GTK_SIGNAL_FUNC (uiButton::pressed), (gpointer) c);
 	gtk_signal_connect (GTK_OBJECT (button), "released", GTK_SIGNAL_FUNC (uiButton::released), (gpointer) c);
-
 }
 
 // ---------------------------	Toggle Buttons ---------------------------
@@ -1221,22 +1217,22 @@ struct uiToggleButton : public uiItem
 	
 	static void toggled (GtkWidget *widget, gpointer data)
 	{
-    	float	v = (GTK_TOGGLE_BUTTON (widget)->active) ? 1.0 : 0.0; 
-    	((uiItem*)data)->modifyZone(v);
+	float	v = (GTK_TOGGLE_BUTTON (widget)->active) ? 1.0 : 0.0;
+	((uiItem*)data)->modifyZone(v);
 	}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
-		fCache = v; 
-		gtk_toggle_button_set_active(fButton, v > 0.0);	
+	virtual void reflectZone()
+	{
+		float v = *fZone;
+		fCache = v;
+		gtk_toggle_button_set_active(fButton, v > 0.0);
 	}
 };
 
 void GTKUI::addToggleButton(const char* label, float* zone)
 {
 	*zone = 0.0;
-	GtkWidget* 	button = gtk_toggle_button_new_with_label (label);
+	GtkWidget* button = gtk_toggle_button_new_with_label (label);
 	addWidget(label, button);
 	
 	uiToggleButton* c = new uiToggleButton(this, zone, GTK_TOGGLE_BUTTON(button));
@@ -1254,22 +1250,22 @@ struct uiCheckButton : public uiItem
 	
 	static void toggled (GtkWidget *widget, gpointer data)
 	{
-    	float	v = (GTK_TOGGLE_BUTTON (widget)->active) ? 1.0 : 0.0; 
-    	((uiItem*)data)->modifyZone(v);
+	float	v = (GTK_TOGGLE_BUTTON (widget)->active) ? 1.0 : 0.0; 
+	((uiItem*)data)->modifyZone(v);
 	}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
-		fCache = v; 
-		gtk_toggle_button_set_active(fButton, v > 0.0);	
+	virtual void reflectZone()
+	{
+		float	v = *fZone;
+		fCache = v;
+		gtk_toggle_button_set_active(fButton, v > 0.0);
 	}
 };
 
 void GTKUI::addCheckButton(const char* label, float* zone)
 {
 	*zone = 0.0;
-	GtkWidget* 	button = gtk_check_button_new_with_label (label);
+	GtkWidget* button = gtk_check_button_new_with_label (label);
 	addWidget(label, button);
 	
 	uiCheckButton* c = new uiCheckButton(this, zone, GTK_TOGGLE_BUTTON(button));
@@ -1287,15 +1283,15 @@ struct uiAdjustment : public uiItem
 	
 	static void changed (GtkWidget *widget, gpointer data)
 	{
-    	float	v = GTK_ADJUSTMENT (widget)->value; 
-    	((uiItem*)data)->modifyZone(v);
+		float	v = GTK_ADJUSTMENT (widget)->value;
+		((uiItem*)data)->modifyZone(v);
 	}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
-		fCache = v; 
-		gtk_adjustment_set_value(fAdj, v);	
+	virtual void reflectZone()
+	{
+		float v = *fZone;
+		fCache = v;
+		gtk_adjustment_set_value(fAdj, v);
 	}
 };
 
@@ -1376,24 +1372,23 @@ void GTKUI::addNumEntry(const char* label, float* zone, float init, float min, f
 
 struct uiBargraph : public uiItem
 {
-	GtkProgressBar*		fProgressBar;
-	float				fMin;
-	float				fMax;
+	GtkProgressBar*	fProgressBar;
+	float		fMin;
+	float		fMax;
 	
-	uiBargraph(UI* ui, float* zone, GtkProgressBar* pbar, float lo, float hi) 
+	uiBargraph(UI* ui, float* zone, GtkProgressBar* pbar, float lo, float hi)
 			: uiItem(ui, zone), fProgressBar(pbar), fMin(lo), fMax(hi) {}
 
-	float scale(float v) 		{ return (v-fMin)/(fMax-fMin); }
+	float scale(float v) { return (v-fMin)/(fMax-fMin); }
 	
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
-		fCache = v; 
+	virtual void reflectZone()
+	{
+		float v = *fZone;
+		fCache = v;
 		gtk_progress_bar_set_fraction(fProgressBar, scale(v));	
 	}
 };
 
-	
 
 void GTKUI::addVerticalBargraph(const char* label, float* zone, float lo, float hi)
 {
@@ -1405,7 +1400,7 @@ void GTKUI::addVerticalBargraph(const char* label, float* zone, float lo, float 
 	addWidget(label, pb);
 	closeBox();
 }
-	
+
 
 void GTKUI::addHorizontalBargraph(const char* label, float* zone, float lo, float hi)
 {
@@ -1425,16 +1420,16 @@ struct uiNumDisplay : public uiItem
 	GtkLabel* fLabel;
 	int	fPrecision;
 	
-	uiNumDisplay(UI* ui, float* zone, GtkLabel* label, int precision) 
+	uiNumDisplay(UI* ui, float* zone, GtkLabel* label, int precision)
 			: uiItem(ui, zone), fLabel(label), fPrecision(precision) {}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
+	virtual void reflectZone()
+	{
+		float v = *fZone;
 		fCache = v;
-		char s[64]; 
-		if (fPrecision <= 0) { 
-			snprintf(s, 63, "%d", int(v)); 
+		char s[64];
+		if (fPrecision <= 0) {
+			snprintf(s, 63, "%d", int(v));
 		} else if (fPrecision>3) {
 			snprintf(s, 63, "%f", v);
 		} else {
@@ -1444,7 +1439,7 @@ struct uiNumDisplay : public uiItem
 		gtk_label_set_text(fLabel, s);
 	}
 };
-	
+
 void GTKUI::addNumDisplay(const char* label, float* zone, int precision )
 {
 	GtkWidget* lw = gtk_label_new("");
@@ -1458,7 +1453,7 @@ void GTKUI::addNumDisplay(const char* label, float* zone, int precision )
 
 struct uiTextDisplay : public uiItem
 {
-	GtkLabel* 	fLabel;
+	GtkLabel*	fLabel;
 	char**		fNames;
 	float		fMin;
 	float		fMax;
@@ -1472,20 +1467,22 @@ struct uiTextDisplay : public uiItem
 		while (fNames[fNum] != 0) fNum++;
 	}
 
-	virtual void reflectZone() 	
-	{ 
-		float 	v = *fZone;
+	virtual void reflectZone()
+	{
+		float v = *fZone;
 		fCache = v;
 		
 		int idx = int(fNum*(v-fMin)/(fMax-fMin));
 		
-		if 		(idx < 0) 		idx = 0; 
-		else if (idx >= fNum) 	idx = fNum-1;
-				
-		gtk_label_set_text(fLabel, fNames[idx]); 
+		if (idx < 0)
+			idx = 0;
+		else if (idx >= fNum)
+			idx = fNum-1;
+
+		gtk_label_set_text(fLabel, fNames[idx]);
 	}
 };
-	
+
 void GTKUI::addTextDisplay(const char* label, float* zone, char* names[], float lo, float hi )
 {
 	GtkWidget* lw = gtk_label_new("");
@@ -1495,7 +1492,7 @@ void GTKUI::addTextDisplay(const char* label, float* zone, char* names[], float 
 	closeBox();
 }
 
-void GTKUI::show() 
+void GTKUI::show()
 {
 	assert(fTop == 0);
 	gtk_widget_show  (fBox[0]);
@@ -1507,13 +1504,13 @@ void GTKUI::show()
  */
 	
 static gboolean callUpdateAllGuis(gpointer)
-{ 
-	UI::updateAllGuis(); 
+{
+	UI::updateAllGuis();
 	return TRUE;
 }
 
 
-void GTKUI::run() 
+void GTKUI::run()
 {
 	assert(fTop == 0);
 	gtk_widget_show  (fBox[0]);
@@ -1545,16 +1542,16 @@ class dsp {
 	dsp() {}
 	virtual ~dsp() {}
 	
-	virtual int getNumInputs() 										= 0;
-	virtual int getNumOutputs() 									= 0;
-    virtual void buildUserInterface(UI* interface) 					= 0;
-    virtual void init(int samplingRate) 							= 0;
- 	virtual void compute(int len, float** inputs, float** outputs) 	= 0;
- 	virtual void conclude() 										{}
+	virtual int getNumInputs()					= 0;
+	virtual int getNumOutputs()					= 0;
+	virtual void buildUserInterface(UI* interface)			= 0;
+	virtual void init(int samplingRate)				= 0;
+	virtual void compute(int len, float** inputs, float** outputs)	= 0;
+	virtual void conclude()						{}
 };
-		
+
 <<includeclass>>
-						
+
 mydsp DSP;
 
 
@@ -1567,45 +1564,44 @@ mydsp DSP;
 *******************************************************************************/
 	
 // lopt : Scan Command Line long int Arguments
-long lopt (int argc, char* argv[], const char* longname, const char* shortname, long def) 
+long lopt (int argc, char* argv[], const char* longname, const char* shortname, long def)
 {
 	for (int i = 2; i < argc; i++) {
 		if (strcmp(argv[i-1], shortname) == 0 || strcmp(argv[i-1], longname) == 0) {
 			return atoi(argv[i]);
-        }
-    }
+		}
+	}
 	return def;
 }
-	
+
 // sopt : Scan Command Line string Arguments
 const char* sopt(int argc, char* argv[], const char* longname, const char* shortname, const char* def) 
 {
 	for (int i = 2; i < argc; i++) {
 		if (strcmp(argv[i-1], shortname) == 0 || strcmp(argv[i-1], longname) == 0) {
 			return argv[i];
-        }
-    }
+		}
+	}
 	return def;
 }
-	
-// fopt : Scan Command Line flag option (without argument), return true if the flag
 
+// fopt : Scan Command Line flag option (without argument), return true if the flag
 bool fopt(int argc, char *argv[], const char* longname, const char* shortname) 
 {
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], shortname) == 0 || strcmp(argv[i], longname) == 0) {
 			return true;
-        }
-    }
+		}
+	}
 	return false;
 }
-	
+
 //-------------------------------------------------------------------------
 // 									MAIN
 //-------------------------------------------------------------------------
 
 pthread_t guithread;
-	
+
 void* run_ui(void* ptr)
 {
 	UI* interface = (UI*) ptr;
@@ -1619,27 +1615,27 @@ int main(int argc, char *argv[])
 	CHECKINTSIZE;
 
 	UI* interface = new GTKUI(argv[0], &argc, &argv);
-	
+
 	// compute rcfilename to (re)store application state
 	char rcfilename[256];
 	char* home = getenv("HOME");
 	snprintf(rcfilename, 255, "%s/.%src", home, basename(argv[0]));
 	
 	AudioInterface	audio(
-		AudioParam().cardName(sopt(argc, argv, "--device", "-d", "hw:0")) 
-					.frequency(lopt(argc, argv, "--frequency", "-f", 44100)) 
+		AudioParam().cardName(sopt(argc, argv, "--device", "-d", "hw:0"))
+					.frequency(lopt(argc, argv, "--frequency", "-f", 44100))
 					.buffering(lopt(argc, argv, "--buffer", "-b", 1024))
 					.periods(lopt(argc, argv, "--periods", "-p", 2))
 					.inputs(DSP.getNumInputs())
 					.outputs(DSP.getNumOutputs())
-	);
+				);
 
 	AVOIDDENORMALS;
 	audio.open();
-	
-    DSP.init(audio.frequency());
-    DSP.buildUserInterface(interface);
-	
+
+	DSP.init(audio.frequency());
+	DSP.buildUserInterface(interface);
+
 	interface->recallState(rcfilename);
 
 	pthread_create(&guithread, NULL, run_ui, interface);
@@ -1657,9 +1653,9 @@ int main(int argc, char *argv[])
 	openMesure();
 	while (running) {
 		audio.read();
-        STARTMESURE
+	STARTMESURE
 		DSP.compute(audio.buffering(), audio.inputSoftChannels(), audio.outputSoftChannels());
-        STOPMESURE  
+	STOPMESURE
 		audio.write();
 		running = mesure <= (KMESURE + KSKIP);
 	}
@@ -1668,10 +1664,10 @@ int main(int argc, char *argv[])
 
 #ifdef BENCHMARKMODE
     printstats(argv[0], audio.buffering(), DSP.getNumInputs(), DSP.getNumOutputs());
-#endif       
+#endif
 	if (fopt(argc, argv, "--verbose", "-v")) {
 		cout << "CLOCKSPERSEC = " << rdtscpersec() << endl;
 	}
 
-  	return 0;
+	return 0;
 }
