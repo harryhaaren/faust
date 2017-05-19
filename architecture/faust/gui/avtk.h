@@ -61,20 +61,20 @@ public:
 				if (metaAux[i].first == "style") {
 					const char* del = ",";
 					char* input = strdup(metaAux[i].second.c_str());
-					printf("meta style : %s\n", input);
+					//printf("meta style : %s\n", input);
 					char* saveptr = 0;
 
 					for(int m = 0; ; m++, input = 0) {
 						char* token = strtok_r(input, del, &saveptr);
 						if (token == NULL)
 							break;
-						printf("wid %d : #m %d: %s\n", i, m, token);
+						//printf("wid %d : #m %d: %s\n", i, m, token);
 						Avtk::Widget* w = widgets[i].w;
 						int newV = atoi(token);
 						if(m == 0) {
-							printf("wid x before: %d, token = %d\n", w->x(), newV);
+							//printf("wid x before: %d, token = %d\n", w->x(), newV);
 							w->x( newV );
-							printf("wid x after: %d\n", w->x());
+							//printf("wid x after: %d\n", w->x());
 						}
 						if(m == 1) {
 							w->y( newV );
@@ -82,7 +82,7 @@ public:
 							w->w( newV );
 						if(m == 3)
 							w->h( newV );
-					}
+						}
 
 					/*
 					int i = 0;
@@ -94,6 +94,7 @@ public:
 						tok = strtok(input, del);
 					}
 					*/
+					}
 				}
 			}
 		}
@@ -103,29 +104,29 @@ public:
 	// -- widget's layouts
 	void group_helper(const char* label)
 	{
-		printf("creating group %s now!\n", label);
+		//printf("creating group %s now!\n", label);
 		widgets.push_back(WidgetEntry(new Avtk::Group(this, widgetX, widgetY, 90, 20, label), 0));
 		currentGroup = (Avtk::Group*)widgets.back().w;
-		currentGroup->mode(wIDTH_EQUAL);
+		currentGroup->mode(Avtk::Group::WIDTH_EQUAL);
 	}
 	virtual void openTabBox(const char* label)
 	{
-		printf("tab box %s\n", label);
+		//printf("tab box %s\n", label);
 		group_helper(label);
 	}
 	virtual void openHorizontalBox(const char* label)
 	{
-		printf("Horizontal box %s\n", label);
+		//printf("Horizontal box %s\n", label);
 		group_helper(label);
 	}
 	virtual void openVerticalBox(const char* label)
 	{
-		printf("vertical box %s\n", label);
+		//printf("vertical box %s\n", label);
 		group_helper(label);
 	}
 	virtual void closeBox()
 	{
-		printf("Close box\n");
+		//printf("Close box\n");
 		currentGroup->end();
 	}
 
