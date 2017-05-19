@@ -27,18 +27,16 @@ public:
 	AvtkUI() :
 		Avtk::UI(520, 300)
 	{
-		printf("avtkUI constructor\n");
 		widgetX = 20;
 		widgetY = widgetX + 60;
 	}
 	virtual ~AvtkUI()
 	{
-		printf("avtkUI destructor\n");
 	}
 
 	virtual void widgetValueCB(Avtk::Widget* w)
 	{
-		printf("%s : %f\n", w->label(), w->value());
+		//printf("%s : %f\n", w->label(), w->value());
 		for(int i = 0; i < widgets.size(); i++) {
 			if(w == widgets.at(i).w) {
 				float min = widgets.at(i).min;
@@ -56,12 +54,46 @@ public:
 				unsigned num;
 				if (metaAux[i].first == "midi") {
 					if (sscanf(metaAux[i].second.c_str(), "ctrl %u", &num) == 1) {
-						printf("found a MIDI CTRL thing\n");
+						//printf("found a MIDI CTRL thing\n");
 						//fCtrlChangeTable[num].push_back(new uiMidiCtrlChange(fMidiHandler, num, this, zone, min, max, input));
 					}
 				}
 				if (metaAux[i].first == "style") {
-					printf("style : %s\n", metaAux[i].second.c_str());
+					const char* del = ",";
+					char* input = strdup(metaAux[i].second.c_str());
+					printf("meta style : %s\n", input);
+					char* saveptr = 0;
+
+					for(int m = 0; ; m++, input = 0) {
+						char* token = strtok_r(input, del, &saveptr);
+						if (token == NULL)
+							break;
+						printf("wid %d : #m %d: %s\n", i, m, token);
+						Avtk::Widget* w = widgets[i].w;
+						int newV = atoi(token);
+						if(m == 0) {
+							printf("wid x before: %d, token = %d\n", w->x(), newV);
+							w->x( newV );
+							printf("wid x after: %d\n", w->x());
+						}
+						if(m == 1) {
+							w->y( newV );
+						if(m == 2)
+							w->w( newV );
+						if(m == 3)
+							w->h( newV );
+					}
+
+					/*
+					int i = 0;
+					const char* del = ",";
+					char* tok = strtok(input, del);
+					while( tok )
+					{
+						printf("tok %d: %s\n", i++, tok);
+						tok = strtok(input, del);
+					}
+					*/
 				}
 			}
 		}
@@ -74,6 +106,7 @@ public:
 		printf("creating group %s now!\n", label);
 		widgets.push_back(WidgetEntry(new Avtk::Group(this, widgetX, widgetY, 90, 20, label), 0));
 		currentGroup = (Avtk::Group*)widgets.back().w;
+		currentGroup->mode(wIDTH_EQUAL);
 	}
 	virtual void openTabBox(const char* label)
 	{
